@@ -118,3 +118,6 @@ double_ml/proto/*.jpg
 
 # sphinx autosummaries 
 doc/_autosummary/
+
+# compiled C files
+*.c
