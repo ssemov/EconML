@@ -283,9 +283,8 @@ class LinearModelFinalInference(GenericModelFinalInference):
         elif self.featurizer is not None:
             X = self.featurizer.transform(X)
         XT = cross_product(X, T1 - T0)
-        print(self._predict(XT).shape)
-        e_pred = reshape_outcomewise_effects(self._predict(XT), self._d_y)
-        e_stderr = reshape_outcomewise_effects(self._prediction_stderr(XT), self._d_y)
+        e_pred = self._predict(XT)
+        e_stderr = self._prediction_stderr(XT)
         d_y = self._d_y[0] if self._d_y else 1
 
         mean_XT = XT.mean(axis=0, keepdims=True)
@@ -483,6 +482,32 @@ class StatsModelsInference(LinearModelFinalInference):
         assert not (self.model_final.fit_intercept), ("Inference can only be performed on models linear in "
                                                       "their features, but here fit_intercept is True")
         self.model_final.cov_type = self.cov_type
+
+    def effect_interval(self, X, *, T0, T1, alpha=0.05):
+        return self.effect_inference(X, T0=T0, T1=T1).conf_int(alpha=alpha)
+
+    def effect_inference(self, X, *, T0, T1):
+        # We can write effect inference as a function of prediction and prediction standard error of
+        # the final method for linear models
+        X, T0, T1 = self._est._expand_treatments(X, T0, T1)
+        if X is None:
+            X = np.ones((T0.shape[0], 1))
+        elif self.featurizer is not None:
+            X = self.featurizer.transform(X)
+        XT = cross_product(X, T1 - T0)
+        e_pred = reshape_outcomewise_effects(self._predict(XT), self._d_y)
+        e_stderr = reshape_outcomewise_effects(self._prediction_stderr(XT), self._d_y)
+        d_y = self._d_y[0] if self._d_y else 1
+
+        mean_XT = XT.mean(axis=0, keepdims=True)
+        mean_pred_stderr = self._prediction_stderr(mean_XT)  # shape[0] will always be 1 here
+        # squeeze the first axis
+        mean_pred_stderr = np.squeeze(mean_pred_stderr, axis=0) if mean_pred_stderr is not None else None
+        # d_t=None here since we measure the effect across all Ts
+        return NormalInferenceResults(d_t=None, d_y=d_y, pred=e_pred,
+                                      pred_stderr=e_stderr, mean_pred_stderr=mean_pred_stderr, inf_type='effect',
+                                      feature_names=self._est.cate_feature_names(),
+                                      output_names=self._est.cate_output_names())
 
 
 class GenericModelFinalInferenceDiscrete(Inference):
