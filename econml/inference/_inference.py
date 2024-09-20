@@ -274,7 +274,6 @@ class LinearModelFinalInference(GenericModelFinalInference):
         return self.effect_inference(X, T0=T0, T1=T1).conf_int(alpha=alpha)
 
     def effect_inference(self, X, *, T0, T1):
-        print("enter effect inference")
         # We can write effect inference as a function of prediction and prediction standard error of
         # the final method for linear models
         X, T0, T1 = self._est._expand_treatments(X, T0, T1)
