@@ -788,9 +788,10 @@ def reshape_outcomewise_effects(A, d_y):
          - (m, ) if d_y is () and Y is a vector,
          - (m, d_y) if d_y is a 1-tuple and Y is an array.
     """
-    if np.shape(A)[1:] == d_y:
+    if np.shape(A)[1:] == d_y or d_y == ():
         return A
-    return A.reshape(-1, d_y[0])
+    else:
+        return A.reshape(-1, d_y[0])
 
 def einsum_sparse(subscripts, *arrs):
     """
